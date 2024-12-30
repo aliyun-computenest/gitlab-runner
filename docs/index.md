@@ -119,25 +119,22 @@
 
 ## 部署流程
 1. 访问计算巢 [部署链接](https://computenest.console.aliyun.com/service/instance/create/default?type=user&ServiceName=Gitlab Runner%E7%A4%BE%E5%8C%BA%E7%89%88)，按提示填写部署参数
-2. 填写实例参数![](./img/param1.png)
-3. 根据需求选择新建专用网络或直接使用已有的专有网络。填写可用区和网络参数![](./img/param2.png)
-4. 填写您的域名。注意需要购买SSL证书。![](./img/param3.png)
-5. 点击立即创建，等待服务实例部署完成![](./img/param4.png)
-6. 服务实例部署完成后，点击实例ID进入到详情界面![](./img/serviceInstance2.png)
-7. 访问服务实例的使用URL![](./img/serviceInstance3.png)
-8. 该应用提供了一个端口，可直接点击使用。
-9. 让我们进入到登录界面，注册admin账号。这里固定了账号名为admin，密码由你输入![](./img/app1.png)
-10. 在使用前我们需要将你的域名绑定到服务实例的公网IP上，比如使用阿里云的云解析服务。![](./img/app4.png)
-11. 可参考该图示例设置dns的解析。![](./img/app5.png)
-12. 如果没有SSL证书，可在阿里云上购买。![](./img/app6.png)
-13. 登录进来后可以看到整体的控制台如图![](./img/app2.png)
-14. 支持了很多种的OAuth登录方式，比如谷歌，Github等。
-15. 配置完，可访问https://你的域名:8080/app实现OAuth登录。
+2. 填写是否新建或选择已有的集群![](./img/param1.png)
+3. 填写Helm配置![](./img/param2.png)。第一个参数为Helm包的Value，具体可参考官方文档。https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml
+4. 默认配置的值中，concurrent为并发作业数量，runnerRegistrationToken为Gitlab处的Runner注册Token，gitlabUrl为Gitlab的URL，如并未部署自己的Gitlab可以填写https://gitlab.com。
+4. 填写应用名称，如Gitlab-runner，此处的应用名同时为OSS Bucket名，集群的Namespace名，Helm应用注册名。
+5. 点击立即创建，等待服务实例部署完成![](./img/si-1.png)
+6. 服务实例部署完成后，点击实例ID进入到详情界面，如图所示，提示已经部署成功![](./img/si-2.png)
+7. 接下来就可以在原Gitlab中创建流水线和执行了
 
 
 ## 进阶配置
 
-### 开启Prometheus监控
+### 动态修改Helm的Values值
+1. 点击进入服务实例详情页，点击右上角的修改配置![img.png](img/update-0.png)
+2. 选择修改Helm配置。![img.png](img/update-1.png)
+3. 修改部署参数，并变配。![img.png](img/update-3.png)
+4. 等待实例变配即实现了Helm的动态更新。
 
 ### 通过配置HPA规则实现Runner Manager节点动态伸缩
 服务创建界面已默认准备了一个HPA规则

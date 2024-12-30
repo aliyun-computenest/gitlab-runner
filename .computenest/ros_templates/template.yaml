@@ -378,7 +378,7 @@ Parameters:
     Label:
       en: Chart values
       zh-cn: Chart values
-    Default: '{"concurrent":20,"log_level":"warning","check_interval":3,"runnerRegistrationToken":"${GitlabRunnerToken}","gitlabUrl":"${GitlabUrl}","resources":{"requests":{"cpu":"250m","memory":"256Mi"},"limits":{"cpu":"1000m","memory":"512Mi"}},"hpa":{"minReplicas":2,"maxReplicas":10,"metrics":[{"type":"Pods","pods":{"metric":{"name":"gitlab_runner_jobs"},"target":{"averageValue":2,"type":"Value"}}}]}}'
+    Default: '{"concurrent":2,"log_level":"warning","check_interval":3,"runnerRegistrationToken":"${GitlabRunnerToken}","gitlabUrl":"${GitlabUrl}","resources":{"requests":{"cpu":"250m","memory":"256Mi"},"limits":{"cpu":"1000m","memory":"512Mi"}}}'
 Conditions:
   CreateAckCondition:
     Fn::Equals:
