@@ -3,7 +3,24 @@ Description:
   en: 新建ack部署
   zh-cn: new ack
 Parameters:
-  CsOptions:
+  OssAccessKeyId:
+    Type: String
+    Description:
+      en: The access key ID of the OSS bucket.
+      zh-cn: OSS存储桶的访问密钥。
+  OssAccessSecretKey:
+    Type: String
+    Description:
+      en: The access secret key of the OSS bucket.
+      zh-cn: OSS存储桶的访问密钥。
+    NoEcho: True
+  ApplicationName:
+    Type: String
+    Label:
+      en: Application Name
+      zh-cn: 应用名称
+    Default: "gitlab-runner"
+  CsOption:
     Type: String
     AllowedValues:
       - ExistCs
@@ -42,7 +59,7 @@ Parameters:
       Visible:
         Condition:
           Fn::Equals:
-            - ${CsOptions}
+            - ${CsOption}
             - ExistCs
   PayType:
     Type: String
@@ -59,7 +76,7 @@ Parameters:
       Visible:
         Condition:
           Fn::Equals:
-            - ${CsOptions}
+            - ${CsOption}
             - NewAck
   PayPeriodUnit:
     Type: String
@@ -76,7 +93,7 @@ Parameters:
         Condition:
           Fn::And:
             - Fn::Equals:
-                - ${CsOptions}
+                - ${CsOption}
                 - NewAck
             - Fn::Not:
                 Fn::Equals:
@@ -107,7 +124,7 @@ Parameters:
         Condition:
           Fn::And:
             - Fn::Equals:
-                - ${CsOptions}
+                - ${CsOption}
                 - NewAck
             - Fn::Not:
                 Fn::Equals:
@@ -126,7 +143,7 @@ Parameters:
         Condition:
           Fn::Not:
             Fn::Equals:
-              - ${CsOptions}
+              - ${CsOption}
               - ExistCs
   VpcOption:
     Type: String
@@ -145,7 +162,7 @@ Parameters:
         Condition:
           Fn::Not:
             Fn::Equals:
-              - ${CsOptions}
+              - ${CsOption}
               - ExistCs
     Label:
       en: Select Existing or New VPC
@@ -172,11 +189,11 @@ Parameters:
           Fn::And:
             - Fn::Not:
                 Fn::Equals:
-                  - ${CsOptions}
+                  - ${CsOption}
                   - ExistCs
             - Fn::Equals:
-                  - ExistingVPC
-                  - ${VpcOption}
+                - ExistingVPC
+                - ${VpcOption}
   VSwitchId:
     Type: String
     Label:
@@ -198,11 +215,11 @@ Parameters:
           Fn::And:
             - Fn::Not:
                 Fn::Equals:
-                  - ${CsOptions}
+                  - ${CsOption}
                   - ExistCs
             - Fn::Equals:
-                  - ExistingVPC
-                  - ${VpcOption}
+                - ExistingVPC
+                - ${VpcOption}
   VpcCidrBlock:
     Type: String
     Label:
@@ -220,7 +237,7 @@ Parameters:
           Fn::And:
             - Fn::Not:
                 Fn::Equals:
-                  - ${CsOptions}
+                  - ${CsOption}
                   - ExistCs
             - Fn::Equals:
                 - NewVPC
@@ -243,7 +260,7 @@ Parameters:
           Fn::And:
             - Fn::Not:
                 Fn::Equals:
-                  - ${CsOptions}
+                  - ${CsOption}
                   - ExistCs
             - Fn::Equals:
                 - NewVPC
@@ -265,7 +282,7 @@ Parameters:
       Visible:
         Condition:
           Fn::Equals:
-            - ${CsOptions}
+            - ${CsOption}
             - NewAck
     AllowedPattern: ^[a-zA-Z0-9-\(\)\`\~\!\@\#\$\%\^\&\*\_\-\+\=\|\{\}\[\]\:\;\<\>\,\.\?\/]*$
     MinLength: 8
@@ -282,23 +299,9 @@ Parameters:
       Visible:
         Condition:
           Fn::Equals:
-            - ${CsOptions}
+            - ${CsOption}
             - NewAck
     Default: ecs.g6.large
-  WorkerInstanceCount:
-    Default: 3
-    Type: Number
-    Label:
-      zh-cn: 实例节点数
-      en: The count for cpu instance.
-    MinValue: 1
-    MaxValue: 5000
-    AssociationPropertyMetadata:
-      Visible:
-        Condition:
-          Fn::Equals:
-            - ${CsOptions}
-            - NewAck
   WorkerSystemDiskCategory:
     Type: String
     AllowedValues:
@@ -311,7 +314,7 @@ Parameters:
       Visible:
         Condition:
           Fn::Equals:
-            - ${CsOptions}
+            - ${CsOption}
             - NewAck
     Label:
       en: Worker System Disk Category
@@ -328,7 +331,7 @@ Parameters:
       Visible:
         Condition:
           Fn::Equals:
-            - ${CsOptions}
+            - ${CsOption}
             - NewAck
   PodCidr:
     Type: String
@@ -343,7 +346,7 @@ Parameters:
       Visible:
         Condition:
           Fn::Equals:
-            - ${CsOptions}
+            - ${CsOption}
             - NewAck
     Default: 10.0.0.0/16
   ServiceCidr:
@@ -367,7 +370,7 @@ Parameters:
         Condition:
           Fn::Not:
             Fn::Equals:
-              - ${CsOptions}
+              - ${CsOption}
               - ExistCs
     Default: 172.16.0.0/16
   ChartValues:
@@ -375,16 +378,24 @@ Parameters:
     Label:
       en: Chart values
       zh-cn: Chart values
-    Default: '{"image": {"pullPolicy": "IfNotPresent"}, "check_interval": 3, "gitlabUrl": "http://120.26.2.223", "podLabels": {"alibabacloud.com/eci": "true"}, "rbac": {"create": true}, "concurrent": 2, "log_level": "warning", "hpa": {"maxReplicas": 10, "minReplicas": 2, "metrics": [{"pods": {"metric": {"name": "gitlab_runner_jobs"}, "target": {"averageValue": 2, "type": "Value"}}, "type": "Pods"}]}, "resources": {"requests": {"memory": "256Mi", "cpu": "250m"}, "limits": {"memory": "512Mi", "cpu": "1000m"}}, "serviceAccount": {"create": true}, "runnerRegistrationToken": "glrt-t1_hKDBX7hzc-vEPw3LP1mZ"}'
+    Default: '{"concurrent":20,"log_level":"warning","check_interval":3,"runnerRegistrationToken":"${GitlabRunnerToken}","gitlabUrl":"${GitlabUrl}","resources":{"requests":{"cpu":"250m","memory":"256Mi"},"limits":{"cpu":"1000m","memory":"512Mi"}},"hpa":{"minReplicas":2,"maxReplicas":10,"metrics":[{"type":"Pods","pods":{"metric":{"name":"gitlab_runner_jobs"},"target":{"averageValue":2,"type":"Value"}}}]}}'
 Conditions:
+  CreateAckCondition:
+    Fn::Equals:
+      - NewAck
+      - Ref: CsOption
+  CreateAcsCondition:
+    Fn::Equals:
+      - NewAcs
+      - Ref: CsOption
+  ExistClusterCondition:
+    Fn::Equals:
+      - ExistCs
+      - Ref: CsOption
   CreateClusterCondition:
     Fn::Or:
-      - Fn::Equals:
-          - NewAck
-          - Ref: CsOptions
-      - Fn::Equals:
-          - NewAcs
-          - Ref: CsOptions
+      - CreateAckCondition
+      - CreateAcsCondition
 Resources:
   VpcModule:
     Condition: CreateClusterCondition
@@ -403,64 +414,176 @@ Resources:
         Ref: VSwitchCidrBlock
       VpcCidrBlock:
         Ref: VpcCidrBlock
-  CsClusterModule:
-    DependsOn:
-      - VpcModule
-    Type: MODULE::SHARE::1563457855438522::CSModule
-    Version: default
+  ManagedKubernetesCluster:
+    Type: ALIYUN::CS::ManagedKubernetesCluster
+    Condition: CreateAckCondition
     Properties:
-      CsOptions:
-        Ref: CsOptions
-      ClusterId:
-        Ref: ClusterId
+      Name:
+        Ref: ALIYUN::StackName
       VpcId:
         Fn::GetAtt:
           - VpcModule
           - VpcId
-      VSwitchId:
-        Fn::GetAtt:
-          - VpcModule
-          - VSwitchId
+      VSwitchIds:
+        - Fn::GetAtt:
+            - VpcModule
+            - VSwitchId
+      NumOfNodes: 0
       ClusterSpec: ack.pro.small
-      PodCidr:
+      NodeCidrMask: 26
+      ContainerCidr:
         Ref: PodCidr
       ServiceCidr:
         Ref: ServiceCidr
-      ZoneId:
-        Ref: ZoneId
-      AckNetworkPlugin: flannel
-      PayType:
-        Ref: PayType
-      PayPeriod:
-        Ref: PayPeriod
-      PayPeriodUnit:
-        Ref: PayPeriodUnit
-      WorkerInstanceCount:
-        Ref: WorkerInstanceCount
-      WorkerInstanceTypes:
-        - Ref: WorkerInstanceType
-      WorkerSystemDiskCategory:
-        Ref: WorkerSystemDiskCategory
-      WorkerSystemDiskSize:
-        Ref: WorkerSystemDiskSize
-      LoginPassword:
-        Ref: LoginPassword
-  FluxHelmApplicationModule:
-    DependsOn:
-      - CsClusterModule
+      ZoneIds:
+        - Ref: ZoneId
+      SnatEntry: true
+      Addons:
+        - Name: flannel
+          Config: ''
+      NodePools:
+        - NodePoolInfo:
+            Name: default-pool
+          KubernetesConfig:
+            Runtime: containerd
+            RuntimeVersion: 1.6.20
+          ScalingGroup:
+            DesiredSize: 3
+            InstanceChargeType:
+              Ref: PayType
+            Period:
+              Ref: PayPeriod
+            PeriodUnit:
+              Ref: PayPeriodUnit
+            VSwitchIds:
+              - Fn::GetAtt:
+                  - VpcModule
+                  - VSwitchId
+            ZoneIds:
+              - Ref: ZoneId
+            SystemDiskCategory:
+              Ref: WorkerSystemDiskCategory
+            SystemDiskSize:
+              Ref: WorkerSystemDiskSize
+            InstanceTypes:
+              - Ref: WorkerInstanceType
+            LoginPassword:
+              Ref: LoginPassword
+            ImageId: aliyun_3_x64_20G_alibase_20240528.vhd
+  AcsCluster:
+    Type: ALIYUN::ACS::Cluster
+    Condition: CreateAcsCondition
+    Properties:
+      Name:
+        Ref: ALIYUN::StackName
+      VpcId:
+        Fn::GetAtt:
+          - VpcModule
+          - VpcId
+      ServiceCidr:
+        Ref: ServiceCidr
+      ClusterSpec: ack.pro.small
+      SnatEntry: true
+      VSwitchIds:
+        - Fn::GetAtt:
+            - VpcModule
+            - VSwitchId
+      ZoneIds:
+        - Ref: ZoneId
+      PodVSwitchIds:
+        - Fn::GetAtt:
+            - VpcModule
+            - VSwitchId
+      ServiceDiscoveryTypes:
+        - CoreDNS
+  MyBucket:
+    Type: ALIYUN::OSS::Bucket
+    Properties:
+      AccessControl: private
+      DeletionForce: true
+      BucketName:
+        Ref: ApplicationName
+  ComputenestHelmApplication:
     Type: MODULE::SHARE::1563457855438522::FluxOciHelmDeploy
     Version: default
     Properties:
       ClusterId:
-        Fn::GetAtt:
-          - CsClusterModule
-          - ClusterId
+        Fn::If:
+          - ExistClusterCondition
+          - Ref: ClusterId
+          - Fn::If:
+              - CreateAckCondition
+              - Fn::GetAtt:
+                  - ManagedKubernetesCluster
+                  - ClusterId
+              - Fn::GetAtt:
+                  - AcsCluster
+                  - ClusterId
       HelmChartUrl: '{{ computenest::helmchart::gitlab-runner }}'
       ChartValues:
-        Ref: ChartValues
+        Fn::MergeMap:
+          - Ref: ChartValues
+          - rbac:
+              create: true
+              resources: ["pods", "pods/exec", "secrets", "configmaps", "pods/attach"]
+              verbs: ["get", "list", "watch", "create", "patch", "delete", "update"]
+            serviceAccount:
+              create: true
+            runners:
+              privileged: true
+              image: "alpine:latest"
+              tags: "kubernetes,k8s"
+              builds:
+                enabled: true
+              config:
+                Fn::Sub:
+                  - |
+                    [[runners]]
+                      name = "kubernetes-runner"
+                      executor = "kubernetes"
+                      namespace = "${Namespace}"
+                      ephemeral_storage_request = "30Gi"
+                      ephemeral_storage_limit = "30Gi"
+                      [runners.cache]
+                        type = "s3"
+                        shared = true
+                        [runners.cache.s3]
+                          ServerAddress = "oss-${Region}-internal.aliyuncs.com"
+                          AccessKey = "${OssAccessKey}"           
+                          SecretKey = "${OssAccessSecret}"
+                          BucketName = "${BucketName}"
+                          BucketLocation = "${Region}"
+                          Insecure = false
+                      [runners.kubernetes]
+                        namespace = "${Namespace}"
+                        cpu_limit = "2"
+                        cpu_request = "2"
+                        memory_limit = "4Gi"
+                        memory_request = "4Gi"
+                        pod_labels_overwrite_allowed = ".*"
+                        [runners.kubernetes.pod_labels]
+                          "alibabacloud.com/compute-qos" = "best-effort"
+                          "alibabacloud.com/compute-class" = "general-purpose"
+                          "alibabacloud.com/eci" = "true"
+                    
+                      [[runners.feature_flags]]
+                        FF_USE_POD_ACTIVE_DEADLINE_SECONDS = true
+                  - OssAccessKey:
+                      Ref: OssAccessKeyId
+                    OssAccessSecret:
+                      Ref: OssAccessSecretKey
+                    Region:
+                      Ref: ALIYUN::Region
+                    BucketName:
+                      Ref: ApplicationName
+                    Namespace:
+                      Ref: ApplicationName
+
       Namespace:
-        Ref: 'ALIYUN::StackName'
-      ReleaseName: gitlab-runner
+        Ref: ApplicationName
+      ReleaseName:
+        Ref: ApplicationName
+
 Outputs:
   Instruction:
     Description:
@@ -468,13 +591,13 @@ Outputs:
       en: Instruction
     Value:
       Fn::GetAtt:
-        - FluxHelmApplicationModule
+        - ComputenestHelmApplication
         - HelmOutput
 Metadata:
   ALIYUN::ROS::Interface:
     ParameterGroups:
       - Parameters:
-          - CsOptions
+          - CsOption
           - ClusterId
         Label:
           en: Cs cluster option
@@ -488,7 +611,6 @@ Metadata:
           zh-cn: 付费类型配置
       - Parameters:
           - WorkerInstanceType
-          - WorkerInstanceCount
           - WorkerSystemDiskCategory
           - WorkerSystemDiskSize
           - LoginPassword
@@ -513,3 +635,10 @@ Metadata:
         Label:
           en: Basic Configuration
           zh-cn: 基础配置
+      - Parameters:
+          - ApplicationName
+          - OssAccessKeyId
+          - OssAccessSecretKey
+        Label:
+          en: Software Configuration
+          zh-cn: 软件配置
