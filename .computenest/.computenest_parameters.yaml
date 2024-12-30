@@ -1,0 +1,43 @@
+ChartValues:
+  image:
+    pullPolicy: IfNotPresent
+  check_interval: 3
+  gitlabUrl: http://120.26.2.223
+  podLabels:
+    alibabacloud.com/eci: 'true'
+  rbac:
+    create: true
+  concurrent: 2
+  log_level: warning
+  hpa:
+    maxReplicas: 10
+    minReplicas: 2
+    metrics:
+    - pods:
+        metric:
+          name: gitlab_runner_jobs
+        target:
+          averageValue: 2
+          type: Value
+      type: Pods
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+    limits:
+      memory: 512Mi
+      cpu: 1000m
+  serviceAccount:
+    create: true
+  runnerRegistrationToken: glrt-t1_hKDBX7hzc-vEPw3LP1mZ
+HelmChartPath: helm
+RuntimeType: Kubernetes
+ServiceType: private
+ArtifactSourceType: HelmChart
+ServiceBuildRegion: ap-southeast-1
+RepoName: aliyun-computenest/gitlab-runner
+RegionId: cn-hangzhou
+OutputType: HelmNotes
+Owner: LYH-RAIN
+Branch: main
+Platform: github

@@ -1,0 +1,50 @@
+Service:
+  RegionId: cn-hangzhou
+  DeployType: ros
+  OperationMetadata:
+    StatusOperationConfigs:
+      - TemplateName: '模版1'
+        SupportOperations:
+          - Start
+          - Stop
+          - Restart
+    SupportBackup: true
+    ModifyParametersConfig:
+      - TemplateName: '模版1'
+        Operation:
+          - Name: 修改Helm参数
+            Description: 修改Helm参数
+            Type: Custom
+            SupportPredefinedParameters: false
+            EnableLogging: false
+            Parameters:
+              - ChartValues
+  DeployMetadata:
+    SupplierDeployMetadata:
+      HelmChartArtifactRelation:
+        '{{ computenest::helmchart::gitlab-runner }}':
+          ArtifactId: ${Artifact.Artifact_1.ArtifactId}
+          ArtifactVersion: ${Artifact.Artifact_1.ArtifactVersion}
+    TemplateConfigs:
+      - Name: 模版1
+        Url: 'ros_templates/template.yaml'
+        AllowedRegions:
+          - ap-southeast-1
+  ServiceType: private
+  ServiceInfo:
+    Locale: zh-CN
+    ShortDescription: helm chart deploy
+    Image: 'resources/icons/service_logo.png'
+Artifact:
+  Artifact_1:
+    ArtifactType: HelmChart
+    ArtifactName: gitlab-runner-helm-chart
+    ArtifactProperty:
+      RepoName: ${HelmChartBuilder.HelmChart_1.RepoName}
+      Tag: ${HelmChartBuilder.HelmChart_1.Tag}
+      RepoType:  Public 
+HelmChartBuilder:
+  HelmChart_1:
+    HelmChartPath: 'resources/artifact_resources/helm_chart/gitlab-runner-0.71.0.tgz'
+    RepoName: gitlab-runner
+    Tag: 0.71.0
