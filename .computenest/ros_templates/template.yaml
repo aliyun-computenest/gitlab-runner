@@ -527,6 +527,13 @@ Resources:
               create: true
               resources: ["pods", "pods/exec", "secrets", "configmaps", "pods/attach"]
               verbs: ["get", "list", "watch", "create", "patch", "delete", "update"]
+            metrics:
+              serviceMonitor:
+                enabled: true
+              enabled: true
+            service:
+              annotations: {}
+              enabled: true
             serviceAccount:
               create: true
             runners:
@@ -622,6 +629,9 @@ Metadata:
           zh-cn: Kubernetes配置
       - Parameters:
           - ChartValues
+          - ApplicationName
+          - OssAccessKeyId
+          - OssAccessSecretKey
         Label:
           en: Helm Config
           zh-cn: Helm配置
@@ -635,10 +645,3 @@ Metadata:
         Label:
           en: Basic Configuration
           zh-cn: 基础配置
-      - Parameters:
-          - ApplicationName
-          - OssAccessKeyId
-          - OssAccessSecretKey
-        Label:
-          en: Software Configuration
-          zh-cn: 软件配置
