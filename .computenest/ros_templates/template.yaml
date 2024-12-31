@@ -5,11 +5,17 @@ Description:
 Parameters:
   OssAccessKeyId:
     Type: String
+    Label:
+      en: OSS Access Key ID
+      zh-cn: OSS访问AK
     Description:
       en: The access key ID of the OSS bucket.
       zh-cn: OSS存储桶的访问密钥。
   OssAccessSecretKey:
     Type: String
+    Label:
+      en: OSS Access Secret Key
+      zh-cn: OSS访问SK
     Description:
       en: The access secret key of the OSS bucket.
       zh-cn: OSS存储桶的访问密钥。
