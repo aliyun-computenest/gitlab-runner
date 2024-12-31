@@ -170,6 +170,7 @@ podLabels:
 ```
 如图所示：
 ![img.png](img/eci-pod.png)
+补充：如果选择为ACS集群，则节点默认都会在虚拟节点上，无需额外配置。
 
 如果需要进一步限制runner manager消耗的资源，可参考如下设置，层级仍为最外层：
 ```yaml
@@ -181,7 +182,6 @@ resources:
     cpu: "1000m"
     memory: "512Mi"
 ```
-补充：如果选择为ACS集群，则节点默认都会在虚拟节点上，无需额外配置。
 
 ### 镜像构建示例
 
@@ -267,3 +267,5 @@ build-job:       # This job runs in the build stage, which runs first.
 ### 完整Values参考
 https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml
 可基于此实现一些更高阶的配置，比如通过Hpa实现Runner manager节点的动态扩缩容。
+
+Gitlab Runner的官方配置文档参考：https://gitlab.cn/docs/runner/configuration/
