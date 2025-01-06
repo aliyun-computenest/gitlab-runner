@@ -108,14 +108,15 @@
 ## 部署流程
 1. 访问计算巢 [部署链接](https://computenest.console.aliyun.com/service/instance/create/default?type=user&ServiceName=Gitlab%20Runner%E7%A4%BE%E5%8C%BA%E7%89%88)，按提示填写部署参数
 2. 填写是否新建或选择已有的集群![](./img/param1.png)
-3. 填写Helm配置![](./img/param2.png)。第一个参数为Helm包的Value，注意必须将GitlabUrl和GitlabRunnerToken进行替换。GitlabUrl是您的Gitlab对外暴露的地址，GitlabRunnerToken为Gitlab处注册的runner的token，用于Gitlab和Runner进行认证，获取Token可参考下两图所示：![img.png](img/param3.png) 新建Runner![img.png](img/param4.png)
+3. 填写Helm配置![](./img/param2.png) 第一个参数为Helm包的Value，注意必须将GitlabUrl和GitlabRunnerToken进行替换。GitlabUrl是您的Gitlab对外暴露的地址，GitlabRunnerToken为Gitlab处注册的runner的token，用于Gitlab和Runner进行认证，获取Token可参考下两图所示：![img.png](img/param3.png) 新建Runner![img.png](img/param4.png)
 4. 注册在Gitlab处成功创建好Runner的示意图如图所示，注意当前界面关闭后则无法再次查看Token：![img.png](img/param5.png)
-5. 其他参数的调整可参考官方文档。https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml
-5. 默认配置的值中，concurrent为并发作业数量，runnerRegistrationToken为Gitlab处的Runner注册Token，gitlabUrl为Gitlab的URL，如并未部署自己的Gitlab可以填写https://gitlab.com。
-6. 填写应用名称，如Gitlab-runner，此处的应用名同时为OSS Bucket名，集群的Namespace名，Helm应用注册名。
-7. 点击立即创建，等待服务实例部署完成![](./img/si-1.png)
-8. 服务实例部署完成后，点击实例ID进入到详情界面，如图所示，提示已经部署成功![](./img/si-2.png)
-9. 接下来就可以在原Gitlab中创建流水线和执行了
+5. OSS访问AK和OSS访问SK为OSS相关ram账号的认证凭证。可参考此文档进行相关Ram ak和sk的创建。https://help.aliyun.com/zh/ram/use-cases/use-ram-to-manage-oss-permissions?spm=a2c4g.11186623.help-menu-search-28625.d_7
+6. 其他参数的调整可参考官方文档。https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml
+7. 默认配置的值中，concurrent为并发作业数量，runnerRegistrationToken为Gitlab处的Runner注册Token，gitlabUrl为Gitlab的URL，如并未部署自己的Gitlab可以填写https://gitlab.com。
+8. 填写应用名称，如Gitlab-runner，此处的应用名同时为OSS Bucket名，集群的Namespace名，Helm应用注册名。
+9. 点击立即创建，等待服务实例部署完成![](./img/si-1.png)
+10. 服务实例部署完成后，点击实例ID进入到详情界面，如图所示，提示已经部署成功![](./img/si-2.png)
+11. 接下来就可以在原Gitlab中创建流水线和执行了
 
 
 ## 进阶配置
