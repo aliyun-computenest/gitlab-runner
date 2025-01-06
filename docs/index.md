@@ -112,7 +112,7 @@
 4. 注册在Gitlab处成功创建好Runner的示意图如图所示，注意当前界面关闭后则无法再次查看Token：![img.png](img/param5.png)
 5. OSS访问AK和OSS访问SK为OSS相关ram账号的认证凭证。可参考此[文档](https://help.aliyun.com/zh/ram/use-cases/use-ram-to-manage-oss-permissions?spm=a2c4g.11186623.help-menu-search-28625.d_7)进行相关Ram ak和sk的创建。
 6. 其他参数的调整可参考[官方文档](https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml)。
-7. 默认配置的值中，concurrent为并发作业数量，如当前并未部署自己的Gitlab可以采用官方的地址，即填写：https://gitlab.com。
+7. 默认配置的值中，concurrent为并发作业数量，如当前并未部署自己的Gitlab可以采用官方的地址，即填写：https://gitlab.com
 8. 填写应用名称，如Gitlab-runner，此处的应用名同时为OSS Bucket名，集群的Namespace名，Helm应用注册名。
 9. 点击立即创建，等待服务实例部署完成![](./img/si-1.png)
 10. 服务实例部署完成后，点击实例ID进入到详情界面，如图所示，提示已经部署成功![](./img/si-2.png)
