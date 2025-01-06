@@ -108,7 +108,7 @@
 ## 部署流程
 1. 访问计算巢 [部署链接](https://computenest.console.aliyun.com/service/instance/create/default?type=user&ServiceName=Gitlab%20Runner%E7%A4%BE%E5%8C%BA%E7%89%88)，按提示填写部署参数
 2. 填写是否新建或选择已有的集群![](./img/param1.png)
-3. 填写Helm配置![](./img/param2.png)。第一个参数为Helm包的Value，注意必须将GitlabUrl和GitlabRunnerToken进行替换。GitlabUrl是您的Gitlab对外暴露的地址，GitlabRunnerToken为Gitlab处注册的runner的token，用于Gitlab和Runner进行认证，可参考下两图所示：![img.png](img/param3.png),新建Runner![img.png](img/param4.png)
+3. 填写Helm配置![](./img/param2.png)。第一个参数为Helm包的Value，注意必须将GitlabUrl和GitlabRunnerToken进行替换。GitlabUrl是您的Gitlab对外暴露的地址，GitlabRunnerToken为Gitlab处注册的runner的token，用于Gitlab和Runner进行认证，获取Token可参考下两图所示：![img.png](img/param3.png) 新建Runner![img.png](img/param4.png)
 4. 注册在Gitlab处成功创建好Runner的示意图如图所示，注意当前界面关闭后则无法再次查看Token：![img.png](img/param5.png)
 5. 其他参数的调整可参考官方文档。https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml
 5. 默认配置的值中，concurrent为并发作业数量，runnerRegistrationToken为Gitlab处的Runner注册Token，gitlabUrl为Gitlab的URL，如并未部署自己的Gitlab可以填写https://gitlab.com。
