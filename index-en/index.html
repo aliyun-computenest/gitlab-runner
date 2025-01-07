@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="计算巢是阿里云开放给企业应用服务商的服务管理平台。服务商能够在计算巢上发布私有化部署服务，为其客户提供云上软件一键部署的能力；同时也支持全托管模式的服务，赋能服务商托管其客户资源。">
+  <title>Gitlab Runner - Aliyun 计算巢 x Demo</title>
+
+  <link rel="shortcut icon" href="../img/favicon.ico">
+
+  <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css">
+  <link rel="stylesheet" href="../css/theme.css">
+  
+
+  
+
+  
+  
+
+  
+    <script src="../search/main.js"></script>
+  
+
+  
+
+  <script src="../js/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+
+<body>
+  <div class="container">
+    <div class="nav">
+      <div class="nav-inner">
+        <div class="logo">
+          <img src="./img/logo-2x.png">
+        </div>
+        <div class="nav-list">
+          <ul>
+          
+              <li><a href="#gitlab-runner">Gitlab Runner</a></li>
+              
+                  <li><a href="#overview">Overview</a></li>
+                  
+              
+                  <li><a href="#prerequisites">Prerequisites</a></li>
+                  
+              
+                  <li><a href="#billing-information">Billing Information</a></li>
+                  
+              
+                  <li><a href="#deployment-architecture">Deployment Architecture</a></li>
+                  
+                      <li class="li-h3"><a href="#deployment-parameters">Deployment Parameters</a></li>
+                  
+              
+                  <li><a href="#deployment-process">Deployment Process</a></li>
+                  
+              
+                  <li><a href="#advanced-configuration">Advanced Configuration</a></li>
+                  
+                      <li class="li-h3"><a href="#dynamically-modify-helm-values-the-following-advanced-configurations-rely-on-this-functionality">Dynamically Modify Helm Values (The Following Advanced Configurations Rely on This Functionality)</a></li>
+                  
+                      <li class="li-h3"><a href="#configure-oss-cache-for-pipeline-acceleration">Configure OSS Cache for Pipeline Acceleration</a></li>
+                  
+                      <li class="li-h3"><a href="#implement-dynamic-scaling-of-runner-manager-nodes-via-hpa-configuration">Implement Dynamic Scaling of Runner Manager Nodes via HPA Configuration</a></li>
+                  
+                      <li class="li-h3"><a href="#using-eci-spot-for-cost-efficient-elastic-worker-nodes-in-ack-scenarios">Using ECI + Spot for Cost-efficient Elastic Worker Nodes in ACK Scenarios</a></li>
+                  
+                      <li class="li-h3"><a href="#image-build-example">Image Build Example</a></li>
+                  
+                      <li class="li-h3"><a href="#image-build-cache-configuration">Image Build Cache Configuration</a></li>
+                  
+                      <li class="li-h3"><a href="#complete-values-reference">Complete Values Reference</a></li>
+                  
+              
+          
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="content theme-github">
+      
+      <div class="content-inner">        
+        
+        <h1 id="gitlab-runner">Gitlab Runner</h1>
+<blockquote>
+<p><strong>Disclaimer:</strong> This service is provided by a third party. While we endeavor to ensure its security, accuracy, and reliability, we cannot guarantee that it will be entirely free from malfunctions, interruptions, errors, or attacks. Therefore, the company hereby declares: we make no representations, guarantees, or commitments regarding the content, accuracy, completeness, reliability, suitability, or timeliness of this service, and we disclaim any responsibility for any direct or indirect losses or damages that may result from your use of this service; we are not responsible for the content, accuracy, completeness, reliability, suitability, or timeliness of any third-party websites, applications, products, and services that you access through this service, and you assume the risk and responsibility for the consequences of their use; we are not liable for any losses or damages resulting from your use of this service, including but not limited to direct losses, indirect losses, loss of profits, loss of goodwill, loss of data, or other economic losses, even if we have been advised in advance of the possibility of such losses or damages. We reserve the right to modify this disclaimer from time to time, so please check it periodically before using this service. If you have any questions or concerns about this disclaimer or this service, please contact us.</p>
+</blockquote>
+<h2 id="overview">Overview</h2>
+<p>JiHu GitLab Runner executes CI/CD jobs defined in JiHu GitLab. JiHu GitLab Runner can run as a single binary, with no language-specific requirements.
+JiHu GitLab Runner features include the following:</p>
+<ul>
+<li>Running multiple jobs in parallel.</li>
+<li>Using multiple tokens (even per project) on multiple servers.</li>
+<li>Limiting the number of concurrent jobs per token.</li>
+<li>Jobs can be run in the following environments:</li>
+<li>
+<ul>
+<li>Locally.</li>
+</ul>
+</li>
+<li>
+<ul>
+<li>Using Docker containers.</li>
+</ul>
+</li>
+<li>
+<ul>
+<li>Using Docker containers with jobs executed via SSH.</li>
+</ul>
+</li>
+<li>
+<ul>
+<li>Using elastic-scaled Docker containers on various cloud and virtualization platforms.</li>
+</ul>
+</li>
+<li>
+<ul>
+<li>Connected to a remote SSH server.</li>
+</ul>
+</li>
+<li>Written in Go and distributed as a single binary with no additional requirements.</li>
+<li>Supports Bash, PowerShell Core, and Windows PowerShell.</li>
+<li>Suitable for GNU/Linux, macOS, and Windows (almost any environment that can run Docker).</li>
+<li>Allows customization of job-running environments.</li>
+<li>Automatically reloads configuration without needing a restart.</li>
+<li>Easy-to-use setup supports for Docker, Docker-SSH, Parallels, or SSH running environments.</li>
+<li>Enables caching of Docker containers.</li>
+<li>Easily installable as a service for GNU/Linux, macOS, and Windows.</li>
+<li>Embedded Prometheus metrics HTTP server.</li>
+<li>Supports monitoring and passing Prometheus metrics and other job-specific data to JiHu GitLab.</li>
+</ul>
+<p>This service can rapidly request runner pods based on the features of Alibaba Cloud Container Virtual Node, significantly reducing costs. The default virtual node type requested is:</p>
+<pre><code class="language-yaml">         &quot;alibabacloud.com/compute-qos&quot; = &quot;best-effort&quot;
+          &quot;alibabacloud.com/compute-class&quot; = &quot;general-purpose&quot;
+</code></pre>
+<p>In actual use, the system requirements configuration for JiHu GitLab Runner depends on:</p>
+<ul>
+<li>The CPU load required by the CI/CD jobs.</li>
+<li>The memory usage required by the CI/CD jobs.</li>
+<li>The number of concurrent CI/CD jobs.</li>
+<li>The number of projects under development.</li>
+<li>The number of developers expected to work simultaneously.</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<p><font style="color:rgb(51, 51, 51);">Deploying the Gitlab Runner Community Edition service instance requires access and the ability to create certain Alibaba Cloud resources. Therefore, your account needs to include permissions for the following resources.</font> <font style="color:rgb(51, 51, 51);"> <strong>Note</strong></font><font style="color:rgb(51, 51, 51);">: These permissions need to be added only if your account is a RAM account.</font></p>
+<table>
+<thead>
+<tr>
+<th><font style="color:rgb(51, 51, 51);">Permission Policy Name</font></th>
+<th><font style="color:rgb(51, 51, 51);">Remarks</font></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><font style="color:rgb(51, 51, 51);">AliyunECSFullAccess</font></td>
+<td><font style="color:rgb(51, 51, 51);">Permission to manage Elastic Compute Service (ECS)</font></td>
+</tr>
+<tr>
+<td><font style="color:rgb(51, 51, 51);">AliyunVPCFullAccess</font></td>
+<td><font style="color:rgb(51, 51, 51);">Permission to manage Virtual Private Cloud (VPC)</font></td>
+</tr>
+<tr>
+<td><font style="color:rgb(51, 51, 51);">AliyunROSFullAccess</font></td>
+<td><font style="color:rgb(51, 51, 51);">Permission to manage Resource Orchestration Service (ROS)</font></td>
+</tr>
+<tr>
+<td><font style="color:rgb(51, 51, 51);">AliyunComputeNestUserFullAccess</font></td>
+<td><font style="color:rgb(51, 51, 51);">Permission to manage Compute Nest Services from a user-side perspective</font></td>
+</tr>
+<tr>
+<td><font style="color:rgb(51, 51, 51);">AliyunComputeOSSFullAccess</font></td>
+<td><font style="color:rgb(51, 51, 51);">Permission to manage Object Storage Service (OSS)</font></td>
+</tr>
+<tr>
+<td><font style="color:rgb(51, 51, 51);">AliyunCSFullAccess</font></td>
+<td><font style="color:rgb(51, 51, 51);">Permission to manage Container Service (CS)</font></td>
+</tr>
+</tbody>
+</table>
+<h2 id="billing-information">Billing Information</h2>
+<p><font style="color:rgb(51, 51, 51);"> The costs associated with deploying the Community Edition on Compute Nest mainly involve:</font></p>
+<ul>
+<li><font style="color:rgb(51, 51, 51);">The selected vCPU and memory specifications</font></li>
+<li><font style="color:rgb(51, 51, 51);">System disk type and capacity</font></li>
+<li><font style="color:rgb(51, 51, 51);">Public bandwidth</font></li>
+</ul>
+<h2 id="deployment-architecture">Deployment Architecture</h2>
+<p><img alt="" src="./img-en/deploy.png" /></p>
+<h3 id="deployment-parameters">Deployment Parameters</h3>
+<p>When creating a service instance, you need to configure the service instance information. The following outlines the detailed information of Jupyterhub service instance input parameters, divided into existing ACK clusters and new ACK clusters.</p>
+<h4 id="existing-ack-cluster">Existing ACK Cluster</h4>
+<p>When the parameter "Create new ACK cluster" is set to no, it means you already have an ACK cluster, and the following parameters need to be filled out.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter Group</th>
+<th>Parameter</th>
+<th>Example</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Service Instance Name</td>
+<td></td>
+<td>test</td>
+<td>Name of the instance</td>
+</tr>
+<tr>
+<td>Region</td>
+<td></td>
+<td>East China 1 (Hangzhou)</td>
+<td>Select the region of the service instance, preferably close by for better network latency.</td>
+</tr>
+<tr>
+<td>Create new ACK cluster</td>
+<td>Yes/No</td>
+<td>No</td>
+<td>Selecting No indicates an existing ACK cluster, no need to create a new one</td>
+</tr>
+<tr>
+<td>Create new ACK cluster</td>
+<td>K8s Cluster ID</td>
+<td>ccde6deb0f612402786e611a7e1230d</td>
+<td>Select the ID of an existing cluster within the region</td>
+</tr>
+<tr>
+<td>Application Configuration</td>
+<td>Domain</td>
+<td>jupyter.mycompany.com</td>
+<td>The domain to access</td>
+</tr>
+<tr>
+<td>Application Configuration</td>
+<td>Helm Configuration</td>
+<td>{}</td>
+<td>Detailed Helm configuration reference: https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml</td>
+</tr>
+</tbody>
+</table>
+<h4 id="new-ack-cluster">New ACK Cluster</h4>
+<table>
+<thead>
+<tr>
+<th>Parameter Group</th>
+<th>Parameter</th>
+<th>Example</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Service Instance Name</td>
+<td></td>
+<td>test</td>
+<td>Name of the instance</td>
+</tr>
+<tr>
+<td>Region</td>
+<td></td>
+<td>East China 1 (Hangzhou)</td>
+<td>Select the region of the service instance, preferably close by for better network latency.</td>
+</tr>
+<tr>
+<td>Create new ACK cluster</td>
+<td></td>
+<td>Yes</td>
+<td>Selecting Yes indicates creating a new ACK cluster</td>
+</tr>
+<tr>
+<td>Billing Type Configuration</td>
+<td>Billing Type</td>
+<td>Pay-As-You-Go or Subscription</td>
+<td></td>
+</tr>
+<tr>
+<td>Basic Configuration</td>
+<td>Availability Zone</td>
+<td>Zone I</td>
+<td>Different availability zones within the region</td>
+</tr>
+<tr>
+<td>Basic Configuration</td>
+<td>VPC Instance ID</td>
+<td>vpc-xxx</td>
+<td>Select an available VPC within the region. If none exists, a new one can be created.</td>
+</tr>
+<tr>
+<td>Basic Configuration</td>
+<td>Subnet Instance ID</td>
+<td>vsw-xxx</td>
+<td>Select a subnet within the selected VPC, influenced by the availability zone. If none exists, a new one can be created.</td>
+</tr>
+<tr>
+<td>Basic Configuration</td>
+<td>Instance Password</td>
+<td><strong><em>*</em></strong>*</td>
+<td>Set the instance password. The password must be between 8-30 characters and include three of the following: uppercase letters, lowercase letters, numbers, special characters from ()~!@#$%^&amp;*-+={}[]:;'&lt;&gt;,.?/.</td>
+</tr>
+<tr>
+<td>Kubernetes Configuration</td>
+<td>Worker Node Specification</td>
+<td>ecs.g6.large</td>
+<td>Choose the ECS instance with the desired number of CPU cores and memory, to be used as a Kubernetes node</td>
+</tr>
+<tr>
+<td>Kubernetes Configuration</td>
+<td>Worker Node System Disk Type</td>
+<td>ESSD Cloud Disk</td>
+<td>Choose the system disk type for the Kubernetes cluster Worker nodes</td>
+</tr>
+<tr>
+<td>Kubernetes Configuration</td>
+<td>Worker Node System Disk Size (GB)</td>
+<td>120</td>
+<td>Set the system disk size for Worker nodes, measured in GB</td>
+</tr>
+<tr>
+<td>Kubernetes Configuration</td>
+<td>ACK Network Plugin</td>
+<td>Flannel</td>
+<td>Choose a network plugin for the ACK cluster, either Flannel or Terway, which affects the pod network settings below</td>
+</tr>
+<tr>
+<td>Kubernetes Configuration</td>
+<td>Pod Network CIDR</td>
+<td>10.0.0.0/16</td>
+<td>The Pod network range for ACK. Required when using Flannel. Please provide a valid private network segment, such as 10.0.0.0/8, 172.16-31.0.0/12-16, or 192.168.0.0/16, not overlapping with existing VPC or Kubernetes clusters.</td>
+</tr>
+<tr>
+<td>Kubernetes Configuration</td>
+<td>Pod Subnet Instance ID</td>
+<td>vsw-xx</td>
+<td>The Pod subnet instance ID for ACK. Required when using Terway. Choose a subnet with a mask no larger than 19.</td>
+</tr>
+<tr>
+<td>Kubernetes Configuration</td>
+<td>Service CIDR</td>
+<td>172.16.0.0/16</td>
+<td>The Service network range for ACK. Choose from: 10.0.0.0/16-24, 172.16-31.0.0/16-24, 192.168.0.0/16-24, ensuring no overlap with existing VPC or Kubernetes clusters.</td>
+</tr>
+<tr>
+<td>Application Configuration</td>
+<td>Domain</td>
+<td>jupyter.mycompany.com</td>
+<td>The domain to access</td>
+</tr>
+<tr>
+<td>Application Configuration</td>
+<td>Helm Configuration</td>
+<td>{}</td>
+<td>Detailed Helm configuration reference: https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml</td>
+</tr>
+</tbody>
+</table>
+<h2 id="deployment-process">Deployment Process</h2>
+<ol>
+<li>Visit the Compute Nest <a href="https://computenest.console.aliyun.com/service/instance/create/default?type=user&amp;ServiceName=Gitlab%20Runner%E7%A4%BE%E5%8C%BA%E7%89%88">deployment link</a> and fill in the deployment parameters as prompted.</li>
+<li>Specify whether to create a new cluster or select an existing one<img alt="" src="../img/param1.png" /></li>
+<li>Fill in the Helm configuration<img alt="" src="../img/param2.png" />. The first parameter is the namespace where the Helm application will run. The default value {"Ref":"ALIYUN::StackName"} means using the Compute Nest instance name as the namespace.</li>
+<li>The second parameter is the Chart values, which are the parameters needed to run the Helm application. <strong>Note that you must replace the GitlabUrl and GitlabRunnerToken here.</strong></li>
+<li>GitlabUrl is the external address of your Gitlab, while GitlabRunnerToken is the token registered with Gitlab for the runner, used for authentication between Gitlab and Runner. Refer to the following two images to obtain the token: <img alt="img.png" src="../img/param3.png" /> for creating a new Runner and <img alt="img.png" src="../img/param4.png" /></li>
+<li>An illustration of successfully creating a Runner registered with Gitlab is shown here. Note that once the current page is closed, the token cannot be viewed again: <img alt="img.png" src="../img/param5.png" /></li>
+<li>In the default configuration values, 'concurrent' represents the number of concurrent jobs. If you have not deployed your own Gitlab, you can use the official address by entering: https://gitlab.com.</li>
+<li><strong>Note: Both the manager node of Gitlab Runner and the scheduled job nodes operate under {{.Release.Namespace}}. Please do not modify this configuration, or it will cause permission issues.</strong></li>
+<li>For adjustments to other parameters, refer to the <a href="https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml">official documentation</a>.</li>
+<li>Click to create immediately and wait for the service instance to be deployed<img alt="" src="../img/si-1.png" /></li>
+<li>Once the service instance deployment is complete, click on the instance ID to enter the detail page. As shown, the deployment has been successfully completed<img alt="" src="../img/si-2.png" /></li>
+<li>You can now proceed to create and execute pipelines in the original Gitlab.</li>
+</ol>
+<h2 id="advanced-configuration">Advanced Configuration</h2>
+<h3 id="dynamically-modify-helm-values-the-following-advanced-configurations-rely-on-this-functionality">Dynamically Modify Helm Values (The Following Advanced Configurations Rely on This Functionality)</h3>
+<ol>
+<li>Click to enter the service instance details page, then click "Modify Configuration" in the top right corner. <img alt="img.png" src="../img/update-0.png" /></li>
+<li>Choose to modify the Helm configuration. <img alt="img.png" src="../img/update-1.png" /></li>
+<li>Modify the deployment parameters and reconfigure. <img alt="img.png" src="../img/update-3.png" /></li>
+<li>Wait for the instance to be reconfigured to achieve dynamic Helm updates.</li>
+</ol>
+<h3 id="configure-oss-cache-for-pipeline-acceleration">Configure OSS Cache for Pipeline Acceleration</h3>
+<p>This cache is for pipeline job caching, such as caching Python dependencies.</p>
+<h4 id="configuration-section">Configuration Section</h4>
+<ol>
+<li>First, you need to create an OSS-related RAM user and grant this user OSS-related permissions, and save its Access Key (AK) and Secret Key (SK). You can refer to this <a href="https://help.aliyun.com/zh/ram/use-cases/use-ram-to-manage-oss-permissions?spm=a2c4g.11186623.help-menu-search-28625.d_7">document</a> for related RAM AK and SK creation.</li>
+<li>Click to enter the service instance details page, then click "Modify Configuration" in the top right corner. <img alt="img.png" src="../img/update-0.png" /></li>
+<li>Choose to modify the Helm configuration. <img alt="img.png" src="../img/update-1.png" /></li>
+<li>Find the line <code>[[runners]]</code>, and add the following configuration in its sub-columns:</li>
+</ol>
+<pre><code class="language-toml">[runners.cache]
+  type = &quot;s3&quot;
+  shared = true
+  [runners.cache.s3]
+    #example：&quot;oss-ap-southeast-1.aliyuncs.com&quot;
+    ServerAddress = &quot;${ServerAddress}&quot;
+    AccessKey = &quot;LTAxxxxx&quot;
+    SecretKey = &quot;0KPDxxxx&quot;
+    #example:&quot;gitlab-runner&quot;
+    BucketName = &quot;${BucketName}&quot;
+    #example:&quot;ap-southeast-1&quot;
+    BucketLocation = &quot;${Region}&quot;
+    Insecure = false
+</code></pre>
+<h3 id="implement-dynamic-scaling-of-runner-manager-nodes-via-hpa-configuration">Implement Dynamic Scaling of Runner Manager Nodes via HPA Configuration</h3>
+<p>A default HPA rule is prepared in the service creation interface</p>
+<pre><code class="language-yaml">hpa:
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          averageUtilization: 10
+          type: Utilization
+</code></pre>
+<p>The corresponding explanations are as follows:
+minReplicas: 2: The minimum number of replicas is set to 2. This means that even with low load, the Deployment will maintain at least 2 running replicas.</p>
+<p>maxReplicas: 10: The maximum number of replicas is set to 10. This is the highest number of replicas HPA can scale to automatically in response to high load.
+target.averageUtilization: 10: The target average utilization is set to 10%. This means that HPA will try to keep the average CPU metric at 10%. If the jobs per Pod exceed 10%, HPA will tend to increase the replicas; if lower than 10%, HPA will reduce the replicas but not below the minReplicas setting.</p>
+<p>These settings mean that HPA will adjust the number of Pods based on CPU utilization, ensuring dynamic scaling between 2 and 10 replicas to meet processing demands.
+More HPA tutorials can be found at: https://help.aliyun.com/zh/ack/hpa</p>
+<h3 id="using-eci-spot-for-cost-efficient-elastic-worker-nodes-in-ack-scenarios">Using ECI + Spot for Cost-efficient Elastic Worker Nodes in ACK Scenarios</h3>
+<p>Select the corresponding ACK cluster, go to Operations Management -&gt; Component Management -&gt; Install ACK Virtual Node to enable ECI elasticity. Subsequent runner jobs will be executed directly on virtual nodes.
+If you also want the runner manager nodes to run on spot instances, the following configuration can be utilized.
+By adding the following annotation, pods in ACK can register using virtual nodes. Note that the parameter level is the same as runnerRegistrationToken.</p>
+<pre><code class="language-yaml">podLabels: 
+  alibabacloud.com/eci: &quot;true&quot;
+</code></pre>
+<p>As shown in the figure:
+<img alt="img.png" src="img-en/eci-pod.png" />
+Note: If ACS cluster is selected, nodes will default to virtual nodes without additional configuration required.</p>
+<p>To further limit the resources consumed by the runner manager, refer to the following settings, which remain at the top level:</p>
+<pre><code class="language-yaml">resources:
+  requests:
+    cpu: &quot;250m&quot;
+    memory: &quot;256Mi&quot;
+  limits:
+    cpu: &quot;1000m&quot;
+    memory: &quot;512Mi&quot;
+</code></pre>
+<h3 id="image-build-example">Image Build Example</h3>
+<h4 id="uploading-images-built-by-gitlab-runner-to-an-image-repository">Uploading Images Built by Gitlab Runner to an Image Repository</h4>
+<p>If you do not have an image repository, you can refer to Alibaba Cloud's ACR service to create one.
+Reference documentation: https://help.aliyun.com/zh/acr/user-guide/create-a-container-registry-enterprise-edition-instance?spm=a2c4g.11186623.help-menu-60716.d_2_0_0.7f991ecdmE3Nmr</p>
+<p>A common scenario for using Gitlab Runner is for Docker image building. Currently, two general solutions exist:
+1. Docker in Docker.
+2. Kaniko.
+   Since Kaniko reduces virtualization overhead and performs more efficiently, only the second solution is exemplified here.
+3. Note: Specify the running image as: registry.cn-hangzhou.aliyuncs.com/acs-demo-ns/kaniko-executor:v1.21.0-amd64-debug</p>
+<pre><code class="language-yaml">build-job:       # This job runs in the build stage, which runs first.
+  stage: build
+  cache:
+    key: test
+    paths:
+      - node_modules/
+      - .cache/
+  image:
+    name: registry.cn-hangzhou.aliyuncs.com/acs-demo-ns/kaniko-executor:v1.21.0-amd64-debug
+    entrypoint: [&quot;&quot;] 
+  script:
+    - echo &quot;{\&quot;auths\&quot;:{\&quot;${ACR_REGISTRY}\&quot;:{\&quot;auth\&quot;:\&quot;$(printf &quot;%s:%s&quot; &quot;${CI_REGISTRY_USER}&quot; &quot;${CI_REGISTRY_PASSWORD}&quot; | base64 | tr -d '\n')\&quot;}}}&quot; &gt; /kaniko/.docker/config.json
+    - /kaniko/executor
+      --context &quot;$CI_PROJECT_DIR&quot;
+      --dockerfile &quot;$CI_PROJECT_DIR/Dockerfile&quot;
+      --destination ${ACR_REGISTRY}:latest
+</code></pre>
+<p>Explanation:
+CI_REGISTRY_USER, CI_REGISTRY_PASSWORD, and ACR_REGISTRY are parameters set as secrets or environment variables. They can be added here:
+<img alt="img.png" src="img-en/variable.png" />
+$CI_PROJECT_DIR represents the current project path.
+The parameter --context specifies the build directory.
+--destination specifies the image repository address.
+More Kaniko parameters can be referenced here: https://github.com/GoogleContainerTools/kaniko</p>
+<h3 id="image-build-cache-configuration">Image Build Cache Configuration</h3>
+<p>This service instance has pre-installed OSS. When writing the pipeline for building images, you can set the cache location. You can specify cache keys and paths to determine the cache path.</p>
+<pre><code class="language-yaml">
+build-job:       # This job runs in the build stage, which runs first.
+  stage: build
+  cache:
+    key: test
+    paths:
+      - node_modules/
+      - .cache/
+</code></pre>
+<p>Here is a complete runner configuration that can be used:</p>
+<pre><code class="language-yaml">stages:          # List of stages for jobs, and their order of execution
+  - build
+  - test
+  - deploy
+variables:
+  KUBERNETES_POD_LABELS_1: &quot;alibabacloud.com/compute-class=general-purpose&quot;
+  KUBERNETES_POD_LABELS_2: &quot;alibabacloud.com/compute-qos=best-effort&quot;
+
+
+build-job:       # This job runs in the build stage, which runs first.
+  stage: build
+  cache:
+    key: test
+    paths:
+      - node_modules/
+      - .cache/
+  image:
+    name: registry.cn-hangzhou.aliyuncs.com/acs-demo-ns/kaniko-executor:v1.21.0-amd64-debug
+    entrypoint: [&quot;&quot;] 
+  script:
+    - echo &quot;{\&quot;auths\&quot;:{\&quot;${ACR_REGISTRY}\&quot;:{\&quot;auth\&quot;:\&quot;$(printf &quot;%s:%s&quot; &quot;${CI_REGISTRY_USER}&quot; &quot;${CI_REGISTRY_PASSWORD}&quot; | base64 | tr -d '\n')\&quot;}}}&quot; &gt; /kaniko/.docker/config.json
+    - /kaniko/executor
+      --context &quot;$CI_PROJECT_DIR&quot;
+      --dockerfile &quot;$CI_PROJECT_DIR/Dockerfile&quot;
+      --destination ${ACR_REGISTRY}:latest
+</code></pre>
+<h3 id="complete-values-reference">Complete Values Reference</h3>
+<p>https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml
+This can be used to implement more advanced configurations, such as enabling dynamic scaling of Runner manager nodes via HPA.</p>
+<p>Official configuration documentation for Gitlab Runner can be referenced here: https://gitlab.cn/docs/runner/configuration/</p>
+        
+      </div>
+
+      <div class="copyrights">© 2009-2022 Aliyun.com 版权所有</div>
+    </div>
+  </div>
+  
+  <!--
+  MkDocs version      : 1.6.1
+  Docs Build Date UTC : 2025-01-07 06:14:42.708136+00:00
+  -->
+</body>
+</html>
