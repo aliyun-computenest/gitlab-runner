@@ -3,29 +3,13 @@ Description:
   en: 新建ack部署
   zh-cn: new ack
 Parameters:
-  OssAccessKeyId:
+  Namespace:
     Type: String
-    Label:
-      en: OSS Access Key ID
-      zh-cn: OSS访问AK
     Description:
-      en: The access key ID of the OSS bucket.
-      zh-cn: OSS存储桶的访问密钥。
-  OssAccessSecretKey:
-    Type: String
-    Label:
-      en: OSS Access Secret Key
-      zh-cn: OSS访问SK
-    Description:
-      en: The access secret key of the OSS bucket.
-      zh-cn: OSS存储桶的访问密钥。
-    NoEcho: True
-  ApplicationName:
-    Type: String
-    Label:
-      en: Application Name
-      zh-cn: 应用名称
-    Default: "gitlab-runner"
+      en: The namespace of the application, default is service instance name.
+      zh-cn: Helm应用命名空间，默认为服务实例名称。
+    Default:
+      Ref: ALIYUN::StackName
   CsOption:
     Type: String
     AllowedValues:
@@ -384,7 +368,7 @@ Parameters:
     Label:
       en: Chart values
       zh-cn: Chart values
-    Default: '{"concurrent":2,"log_level":"warning","check_interval":3,"runnerRegistrationToken":"${GitlabRunnerToken}","gitlabUrl":"${GitlabUrl}","resources":{"requests":{"cpu":"250m","memory":"256Mi"},"limits":{"cpu":"1000m","memory":"512Mi"}}}'
+    Default: '{"concurrent":2,"check_interval":3,"runnerRegistrationToken":"${RunnerRegistrationToken}","gitlabUrl":"${GitlabUrl}","runners":{"privileged":true,"image":"alpine:latest","tags":"kubernetes,k8s","builds":{"enabled":true},"config":"[[runners]]\n  name = \"kubernetes-runner\"\n  namespace =  \"{{.Release.Namespace}}\"\n  executor = \"kubernetes\"\n  ephemeral_storage_request = \"30Gi\"\n  ephemeral_storage_limit = \"30Gi\"\n  [runners.kubernetes]\n    namespace =  \"{{.Release.Namespace}}\"\n    cpu_limit = \"2\"\n    cpu_request = \"2\"\n    memory_limit = \"4Gi\"\n    memory_request = \"4Gi\"\n    pod_labels_overwrite_allowed = \".*\"\n    [runners.kubernetes.pod_labels]\n      \"alibabacloud.com/compute-qos\" = \"best-effort\"\n      \"alibabacloud.com/compute-class\" = \"general-purpose\"\n  [[runners.feature_flags]]\n    FF_USE_POD_ACTIVE_DEADLINE_SECONDS = true\n"},"rbac":{"create":true},"serviceAccount":{"create":true}}'
 Conditions:
   CreateAckCondition:
     Fn::Equals:
@@ -502,13 +486,6 @@ Resources:
             - VSwitchId
       ServiceDiscoveryTypes:
         - CoreDNS
-  MyBucket:
-    Type: ALIYUN::OSS::Bucket
-    Properties:
-      AccessControl: private
-      DeletionForce: true
-      BucketName:
-        Ref: ApplicationName
   ComputenestHelmApplication:
     Type: MODULE::SHARE::1563457855438522::FluxOciHelmDeploy
     Version: default
@@ -527,75 +504,11 @@ Resources:
                   - ClusterId
       HelmChartUrl: '{{ computenest::helmchart::gitlab-runner }}'
       ChartValues:
-        Fn::MergeMap:
-          - Ref: ChartValues
-          - rbac:
-              create: true
-              resources: ["pods", "pods/exec", "secrets", "configmaps", "pods/attach"]
-              verbs: ["get", "list", "watch", "create", "patch", "delete", "update"]
-            metrics:
-              serviceMonitor:
-                enabled: true
-              enabled: true
-            service:
-              annotations: {}
-              enabled: true
-            serviceAccount:
-              create: true
-            runners:
-              privileged: true
-              image: "alpine:latest"
-              tags: "kubernetes,k8s"
-              builds:
-                enabled: true
-              config:
-                Fn::Sub:
-                  - |
-                    [[runners]]
-                      name = "kubernetes-runner"
-                      executor = "kubernetes"
-                      namespace = "${Namespace}"
-                      ephemeral_storage_request = "30Gi"
-                      ephemeral_storage_limit = "30Gi"
-                      [runners.cache]
-                        type = "s3"
-                        shared = true
-                        [runners.cache.s3]
-                          ServerAddress = "oss-${Region}-internal.aliyuncs.com"
-                          AccessKey = "${OssAccessKey}"           
-                          SecretKey = "${OssAccessSecret}"
-                          BucketName = "${BucketName}"
-                          BucketLocation = "${Region}"
-                          Insecure = false
-                      [runners.kubernetes]
-                        namespace = "${Namespace}"
-                        cpu_limit = "2"
-                        cpu_request = "2"
-                        memory_limit = "4Gi"
-                        memory_request = "4Gi"
-                        pod_labels_overwrite_allowed = ".*"
-                        [runners.kubernetes.pod_labels]
-                          "alibabacloud.com/compute-qos" = "best-effort"
-                          "alibabacloud.com/compute-class" = "general-purpose"
-                          "alibabacloud.com/eci" = "true"
-                    
-                      [[runners.feature_flags]]
-                        FF_USE_POD_ACTIVE_DEADLINE_SECONDS = true
-                  - OssAccessKey:
-                      Ref: OssAccessKeyId
-                    OssAccessSecret:
-                      Ref: OssAccessSecretKey
-                    Region:
-                      Ref: ALIYUN::Region
-                    BucketName:
-                      Ref: ApplicationName
-                    Namespace:
-                      Ref: ApplicationName
-
+        Ref: ChartValues
       Namespace:
-        Ref: ApplicationName
+        Ref: ALIYUN::StackName
       ReleaseName:
-        Ref: ApplicationName
+        Ref: ALIYUN::StackName
 
 Outputs:
   Instruction:
@@ -634,10 +547,8 @@ Metadata:
           en: Kubernetes
           zh-cn: Kubernetes配置
       - Parameters:
+          - Namespace
           - ChartValues
-          - ApplicationName
-          - OssAccessKeyId
-          - OssAccessSecretKey
         Label:
           en: Helm Config
           zh-cn: Helm配置

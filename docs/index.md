@@ -75,9 +75,7 @@
 | 地域        |           | 华东1（杭州）                         | 选中服务实例的地域，建议就近选中，以获取更好的网络延时。                                                         |
 | 是否新建ack集群 | 是否新建ack集群 | 否                               | 选择否代表已有ack集群，不用新建                                                                    |
 | 是否新建ack集群 | K8s集群ID   | ccde6deb0f612402786e611a7e1230d | 根据地域选择地域中用户已有的集群id                                                                   |
-| 应用配置      | 域名        | jupyter.mycompany.com           | 访问的域名                                                                                |
-| 应用配置      | OSS访问凭证   | AccessKey                       | Oss访问凭证，需要有oss读写权限。                                                                  |
-| 应用配置      | OSS访问凭证秘钥 | secret key                      | Oss访问凭证秘钥。                                                                           |
+| 应用配置      | namespace | gitlab-runner                   | helm应用工作的命名空间。                                                                       |
 | 应用配置      | Helm 配置   | {}                              | helm的配置详细参考https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml｜ |
 
 #### 新建ack集群
@@ -99,33 +97,75 @@
 | Kubernetes配置 | Pod 网络 CIDR       | 10.0.0.0/16           | ack Pod网络段，网络插件为Flannel时必填，请填写有效的私有网段，即以下网段及其子网：10.0.0.0/8，172.16-31.0.0/12-16，192.168.0.0/16，不能与 VPC 及 VPC 内已有 Kubernetes 集群使用的网段重复。 |
 | Kubernetes配置 | pod交换机实例ID        | vsw-xx                | ack Pod交换机实例id，网络插件为Terway时必填，建议选择网段掩码不大于 19 的虚拟交换机                                                                                   |
 | Kubernetes配置 | Service CIDR      | 172.16.0.0/16         | ack Service网络段, 可选范围：10.0.0.0/16-24，172.16-31.0.0/16-24，192.168.0.0/16-24,不能与 VPC 及 VPC 内已有 Kubernetes 集群使用的网段重复。                     |
-| 应用配置         | 域名                | jupyter.mycompany.com | 访问的域名                                                                                                                                 |
-| 应用配置         | OSS访问凭证           | AccessKey             | Oss访问凭证，需要有oss读写权限。                                                                                                                   |
-| 应用配置         | OSS访问凭证秘钥         | secret key            | Oss访问凭证秘钥。                                                                                                                            |
+| 应用配置      | namespace | gitlab-runner                   | helm应用工作的命名空间。                                                                       |
 | 应用配置         | Helm 配置           | {}                    | helm的配置详细参考https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml｜                                                  |
 
 
 ## 部署流程
 1. 访问计算巢 [部署链接](https://computenest.console.aliyun.com/service/instance/create/default?type=user&ServiceName=Gitlab%20Runner%E7%A4%BE%E5%8C%BA%E7%89%88)，按提示填写部署参数
 2. 填写是否新建或选择已有的集群![](./img/param1.png)
-3. 填写Helm配置![](./img/param2.png) 第一个参数为Helm包的Value，注意必须将GitlabUrl和GitlabRunnerToken进行替换。GitlabUrl是您的Gitlab对外暴露的地址，GitlabRunnerToken为Gitlab处注册的runner的token，用于Gitlab和Runner进行认证，获取Token可参考下两图所示：![img.png](img/param3.png) 新建Runner![img.png](img/param4.png)
-4. 注册在Gitlab处成功创建好Runner的示意图如图所示，注意当前界面关闭后则无法再次查看Token：![img.png](img/param5.png)
-5. OSS访问AK和OSS访问SK为OSS相关ram账号的认证凭证。可参考此[文档](https://help.aliyun.com/zh/ram/use-cases/use-ram-to-manage-oss-permissions?spm=a2c4g.11186623.help-menu-search-28625.d_7)进行相关Ram ak和sk的创建。
-6. 其他参数的调整可参考[官方文档](https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml)。
-7. 默认配置的值中，concurrent为并发作业数量，如当前并未部署自己的Gitlab可以采用官方的地址，即填写：https://gitlab.com
-8. 填写应用名称，如Gitlab-runner，此处的应用名同时为OSS Bucket名，集群的Namespace名，Helm应用注册名。
-9. 点击立即创建，等待服务实例部署完成![](./img/si-1.png)
-10. 服务实例部署完成后，点击实例ID进入到详情界面，如图所示，提示已经部署成功![](./img/si-2.png)
-11. 接下来就可以在原Gitlab中创建流水线和执行了
+3. 填写Helm配置![](./img/param2.png) 第一个参数为该Helm应用运行的命名空间，默认值为{"Ref":"ALIYUN::StackName"}代表使用计算巢实例名称作为命名空间
+4. 第二个参数为Chart values，即Helm应用运行是要的参数。**注意此处必须将GitlabUrl和GitlabRunnerToken进行替换**。
+5. GitlabUrl是您的Gitlab对外暴露的地址，GitlabRunnerToken为Gitlab处注册的runner的token，用于Gitlab和Runner进行认证，获取Token可参考下两图所示：![img.png](img/param3.png) 新建Runner![img.png](img/param4.png)
+6. 注册在Gitlab处成功创建好Runner的示意图如图所示，注意当前界面关闭后则无法再次查看Token：![img.png](img/param5.png)
+7. 默认配置的值中，concurrent为并发作业数量，如当前并未部署自己的Gitlab可以采用官方的地址，即填写：https://gitlab.com。
+8. ** 注意：Gitlab Runner的manager节点和被调度的job节点都工作在{{.Release.Namespace}}下，请不要对此项配置进行修改，否则会出现权限问题。**
+9. 其他参数的调整可参考[官方文档](https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml)。
+10. 点击立即创建，等待服务实例部署完成![](./img/si-1.png)
+11. 服务实例部署完成后，点击实例ID进入到详情界面，如图所示，提示已经部署成功![](./img/si-2.png)
+12. 接下来就可以在原Gitlab中创建流水线和执行了
 
 
 ## 进阶配置
 
-### 动态修改Helm的Values值
+### 动态修改Helm的Values值(以下高阶配置需依赖此功能)
 1. 点击进入服务实例详情页，点击右上角的修改配置![img.png](img/update-0.png)
 2. 选择修改Helm配置。![img.png](img/update-1.png)
 3. 修改部署参数，并变配。![img.png](img/update-3.png)
 4. 等待实例变配即实现了Helm的动态更新。
+
+### 为流水线配置OSS缓存进行加速
+这里的缓存为流水线作业缓存，如缓存Python依赖项
+#### 配置部分
+1. 新建OSS仓库。可参考此[文档](https://help.aliyun.com/zh/oss/getting-started/console-quick-start?spm=a2c4g.11186623.help-menu-31815.d_1_1.3aff7368I234UB)创建OSS。建议与集群同地域。
+2. 创建一个OSS相关的Ram用户，并为该用户授权OSS相关权限，且保存其访问AK和SK。可参考此[文档](https://help.aliyun.com/zh/ram/use-cases/use-ram-to-manage-oss-permissions?spm=a2c4g.11186623.help-menu-search-28625.d_7)进行相关Ram ak和sk的创建。
+3. 点击进入服务实例详情页，点击右上角的修改配置![img.png](img/update-0.png)
+4. 选择修改Helm配置。![img.png](img/update-1.png)
+5. 找到[[runners]]该行，在其子列中添加如下配置：
+```toml
+[runners.cache]
+  type = "s3"
+  shared = true
+  [runners.cache.s3]
+    #示例"oss-ap-southeast-1.aliyuncs.com"
+    ServerAddress = "${ServerAddress}"
+    AccessKey = "LTAxxxxx"
+    SecretKey = "0KPDxxxx"
+    #示例"gitlab-runner"
+    BucketName = "${BucketName}"
+    #示例"ap-southeast-1"
+    BucketLocation = "${Region}"
+    Insecure = false
+```
+5. 等待实例变配即实现了Helm的动态更新。
+#### 使用部分
+
+在完成上述配置后，在编写构建镜像的流水线可设置缓存的位置。可设置缓存的cache key和paths来指定缓存路径。
+```yaml
+build-job:       # This job runs in the build stage, which runs first.
+  stage: build
+  cache:
+    key: test
+    paths:
+      - node_modules/
+      - .cache/
+```
+流水线在运行时如有以下内容，则代表构建使用了缓存
+
+![img.png](img/oss-1.png)
+
+流水线缓存详细文档可参考[文档](https://gitlab.cn/docs/jh/ci/caching/#%E7%BC%93%E5%AD%98-python-%E4%BE%9D%E8%B5%96%E9%A1%B9)
+
 
 ### 通过配置HPA规则实现Runner Manager节点动态伸缩
 服务创建界面已默认准备了一个HPA规则
@@ -159,6 +199,14 @@ target.averageValue: 10：目标平均值为10%。这意味着 HPA 将尝试保�
 podLabels: 
   alibabacloud.com/eci: "true"
 ```
+同时需要在runners的config中添加以下配置：
+```yaml
+[runners.kubernetes.pod_labels]
+  "alibabacloud.com/compute-qos" = "best-effort"
+  "alibabacloud.com/compute-class" = "general-purpose"
+  "alibabacloud.com/eci" = "true"
+```
+![img.png](img/eci-1.png)
 如图所示：
 ![img.png](img/eci-pod.png)
 补充：如果选择为ACS集群，则节点默认都会在虚拟节点上，无需额外配置。
@@ -212,16 +260,20 @@ $CI_PROJECT_DIR代表当前项目路径。
 --destination代表镜像仓库地址。
 更多kaniko参数可参考：https://github.com/GoogleContainerTools/kaniko
 
-### 镜像构建缓存配置
-本服务实例已经预装了OSS，在编写构建镜像的流水线可设置缓存的位置。可设置缓存的cache key和paths来指定缓存路径。
+#### 镜像构建缓存配置
+**注意**：此处的缓存指使用kaniko构建镜像时开启镜像不同层之间的缓存。
+如果采用了阿里云镜像仓库可参考下列设置直接开启镜像构建时的加速。
+caching Layers ：kaniko 可以在远程存储库中缓存由RUN（由flag–cache-RUN-layers配置）和COPY（由flag–cache-COPY-layeers配置）命令创建的层。 在执行命令之前 kaniko 会检查当前层的缓存并利用
+用户可以通过设置 --cache=true 标志选择缓存,并且可以通过--cache-repo 标志提供用于存储缓存层的远程存储库, 如果未提供此标志则将从提供的--destination推断缓存的repo。
+一个使用了kaniko缓存的示例可参考：
 ```yaml
-build-job:       # This job runs in the build stage, which runs first.
-  stage: build
-  cache:
-    key: test
-    paths:
-      - node_modules/
-      - .cache/
+  script:
+    - echo "{\"auths\":{\"${ACR_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor
+      --context "$CI_PROJECT_DIR"
+      --dockerfile "$CI_PROJECT_DIR/Dockerfile"
+      --destination ${ACR_REGISTRY}:latest
+      --cache=true
 ```
 
 这里最后给出一个完整可以使用的runner配置：
@@ -251,10 +303,9 @@ build-job:       # This job runs in the build stage, which runs first.
       --context "$CI_PROJECT_DIR"
       --dockerfile "$CI_PROJECT_DIR/Dockerfile"
       --destination ${ACR_REGISTRY}:latest
-      # --cache=true
-      # --cache-repo "${CACHE_REPO}"
-      # --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}"
+       --cache=true
 ```
+
 ### 完整Values参考
 https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml
 可基于此实现一些更高阶的配置，比如通过Hpa实现Runner manager节点的动态扩缩容。

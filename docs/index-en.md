@@ -76,8 +76,6 @@ When the parameter "Create new ACK cluster" is set to no, it means you already h
 | Create new ACK cluster   | Yes/No      | No                            | Selecting No indicates an existing ACK cluster, no need to create a new one |
 | Create new ACK cluster   | K8s Cluster ID | ccde6deb0f612402786e611a7e1230d | Select the ID of an existing cluster within the region |
 | Application Configuration | Domain         | jupyter.mycompany.com           | The domain to access                         |
-| Application Configuration | OSS Access Credentials | AccessKey                     | OSS access credentials, with read and write permissions needed  |
-| Application Configuration | OSS Secret Key  | secret key                       | OSS secret key                              |
 | Application Configuration | Helm Configuration  | {}                              | Detailed Helm configuration reference: https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml |
 
 #### New ACK Cluster
@@ -100,28 +98,52 @@ When the parameter "Create new ACK cluster" is set to no, it means you already h
 | Kubernetes Configuration  | Pod Subnet Instance ID   | vsw-xx                       | The Pod subnet instance ID for ACK. Required when using Terway. Choose a subnet with a mask no larger than 19. |
 | Kubernetes Configuration  | Service CIDR             | 172.16.0.0/16                | The Service network range for ACK. Choose from: 10.0.0.0/16-24, 172.16-31.0.0/16-24, 192.168.0.0/16-24, ensuring no overlap with existing VPC or Kubernetes clusters. |
 | Application Configuration  | Domain                  | jupyter.mycompany.com        | The domain to access                                                       |
-| Application Configuration  | OSS Access Credentials  | AccessKey                    | OSS access credentials, with read and write permissions needed             |
-| Application Configuration  | OSS Secret Key          | secret key                   | OSS secret key                                                             |
 | Application Configuration  | Helm Configuration      | {}                           | Detailed Helm configuration reference: https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml |
 
 ## Deployment Process
-1. Visit Compute Nest [deployment link](https://computenest.console.aliyun.com/service/instance/create/default?type=user&ServiceName=Gitlab Runner%E7%A4%BE%E5%8C%BA%E7%89%88), and fill in the deployment parameters as prompted
-2. Specify whether to create a new cluster or select an existing one ![](./img-en/param1.png)
-3. Fill in the Helm configuration ![](./img-en/param2.png). The first parameter is the value of the Helm package, with specific reference to the official documentation at https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml
-4. In the default configuration values, "concurrent" refers to the number of concurrent jobs, "runnerRegistrationToken" is the Runner registration token from Gitlab, and "gitlabUrl" is the URL of Gitlab. If you have not deployed your own Gitlab, you can use https://gitlab.com.
-4. Fill in the application name, such as Gitlab-runner. This name will also be used as the OSS Bucket name, namespace name in the cluster, and Helm application registration name.
-5. Click "Create Now" and wait for the service instance deployment to complete ![](./img-en/si-1.png)
-6. After the service instance is deployed, click on the instance ID to go to the details page. As shown, the deployment is successful ![](./img-en/si-2.png)
-7. You can now create pipelines and execute them in the original Gitlab
-
+1. Visit the Compute Nest [deployment link](https://computenest.console.aliyun.com/service/instance/create/default?type=user&ServiceName=Gitlab%20Runner%E7%A4%BE%E5%8C%BA%E7%89%88) and fill in the deployment parameters as prompted.
+2. Specify whether to create a new cluster or select an existing one![](./img/param1.png)
+3. Fill in the Helm configuration![](./img/param2.png). The first parameter is the namespace where the Helm application will run. The default value {"Ref":"ALIYUN::StackName"} means using the Compute Nest instance name as the namespace.
+4. The second parameter is the Chart values, which are the parameters needed to run the Helm application. **Note that you must replace the GitlabUrl and GitlabRunnerToken here.**
+5. GitlabUrl is the external address of your Gitlab, while GitlabRunnerToken is the token registered with Gitlab for the runner, used for authentication between Gitlab and Runner. Refer to the following two images to obtain the token: ![img.png](img/param3.png) for creating a new Runner and ![img.png](img/param4.png)
+6. An illustration of successfully creating a Runner registered with Gitlab is shown here. Note that once the current page is closed, the token cannot be viewed again: ![img.png](img/param5.png)
+7. In the default configuration values, 'concurrent' represents the number of concurrent jobs. If you have not deployed your own Gitlab, you can use the official address by entering: https://gitlab.com.
+8. **Note: Both the manager node of Gitlab Runner and the scheduled job nodes operate under {{.Release.Namespace}}. Please do not modify this configuration, or it will cause permission issues.**
+9. For adjustments to other parameters, refer to the [official documentation](https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml).
+10. Click to create immediately and wait for the service instance to be deployed![](./img/si-1.png)
+11. Once the service instance deployment is complete, click on the instance ID to enter the detail page. As shown, the deployment has been successfully completed![](./img/si-2.png)
+12. You can now proceed to create and execute pipelines in the original Gitlab.
 ## Advanced Configuration
 
-### Dynamically Modify Helm Values
-1. Click to enter the service instance details page and click "Modify Configuration" in the upper right corner ![img.png](img-en/update-0.png)
-2. Select to modify the Helm configuration. ![img.png](img-en/update-1.png)
-3. Modify the deployment parameters and proceed with the reconfiguration. ![img.png](img-en/update-3.png)
-4. Wait for the instance to be reconfigured to achieve dynamic updates of Helm.
+### Dynamically Modify Helm Values (The Following Advanced Configurations Rely on This Functionality)
+1. Click to enter the service instance details page, then click "Modify Configuration" in the top right corner. ![img.png](img/update-0.png)
+2. Choose to modify the Helm configuration. ![img.png](img/update-1.png)
+3. Modify the deployment parameters and reconfigure. ![img.png](img/update-3.png)
+4. Wait for the instance to be reconfigured to achieve dynamic Helm updates.
 
+### Configure OSS Cache for Pipeline Acceleration
+This cache is for pipeline job caching, such as caching Python dependencies.
+
+#### Configuration Section
+1. First, you need to create an OSS-related RAM user and grant this user OSS-related permissions, and save its Access Key (AK) and Secret Key (SK). You can refer to this [document](https://help.aliyun.com/zh/ram/use-cases/use-ram-to-manage-oss-permissions?spm=a2c4g.11186623.help-menu-search-28625.d_7) for related RAM AK and SK creation.
+2. Click to enter the service instance details page, then click "Modify Configuration" in the top right corner. ![img.png](img/update-0.png)
+3. Choose to modify the Helm configuration. ![img.png](img/update-1.png)
+4. Find the line `[[runners]]`, and add the following configuration in its sub-columns:
+```toml
+[runners.cache]
+  type = "s3"
+  shared = true
+  [runners.cache.s3]
+    #example："oss-ap-southeast-1.aliyuncs.com"
+    ServerAddress = "${ServerAddress}"
+    AccessKey = "LTAxxxxx"
+    SecretKey = "0KPDxxxx"
+    #example:"gitlab-runner"
+    BucketName = "${BucketName}"
+    #example:"ap-southeast-1"
+    BucketLocation = "${Region}"
+    Insecure = false
+```
 ### Implement Dynamic Scaling of Runner Manager Nodes via HPA Configuration
 A default HPA rule is prepared in the service creation interface
 ```yaml
@@ -249,9 +271,6 @@ build-job:       # This job runs in the build stage, which runs first.
       --context "$CI_PROJECT_DIR"
       --dockerfile "$CI_PROJECT_DIR/Dockerfile"
       --destination ${ACR_REGISTRY}:latest
-      # --cache=true
-      # --cache-repo "${CACHE_REPO}"
-      # --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}"
 ```
 
 ### Complete Values Reference
